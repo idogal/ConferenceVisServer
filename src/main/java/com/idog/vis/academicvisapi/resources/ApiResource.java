@@ -49,7 +49,12 @@ public class ApiResource {
         Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
         invocationBuilder.header("Ocp-Apim-Subscription-Key", "edd1731c7e5d48a1ac3f057a41726bfd");
         
-        return invocationBuilder.get();
+        Response response = invocationBuilder.get();
+        String readEntity = response.readEntity(String.class);
+        
+        //unmarshal JSON...
+        
+        return response;
     }
 
 }
