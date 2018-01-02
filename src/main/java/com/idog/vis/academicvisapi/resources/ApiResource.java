@@ -5,8 +5,12 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.VisServerRequestResources;
+import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
+import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
+import java.io.IOException;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -35,7 +39,7 @@ public class ApiResource {
     @Path("/")
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public Response getDemo() {
+    public Response getDemo() throws IOException {
 
         ClientConfig clientConfig = new ClientConfig();
         Client client = ClientBuilder.newClient(clientConfig);
@@ -50,8 +54,10 @@ public class ApiResource {
         invocationBuilder.header("Ocp-Apim-Subscription-Key", "edd1731c7e5d48a1ac3f057a41726bfd");
         
         Response response = invocationBuilder.get();
-        String readEntity = response.readEntity(String.class);
+        String entityString = response.readEntity(String.class);
         
+        ObjectMapper mapper = new ObjectMapper();
+        AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
         //unmarshal JSON...
         
         return response;
