@@ -19,5 +19,5 @@ public class AcademicApiPaper {
     public String title;   
     
     @JsonProperty("E")
-    public String extendedProperties;
+    public AcademicApiPaperExtended extendedProperties;
 }

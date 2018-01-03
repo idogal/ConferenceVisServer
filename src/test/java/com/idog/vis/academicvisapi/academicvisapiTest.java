@@ -7,22 +7,36 @@ package com.idog.vis.academicvisapi;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaperExtended;
 import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
+import com.idog.vis.academicvisapi.beans.AcademicApiResponseDeserializer;
+import com.idog.vis.academicvisapi.resources.ApiResource;
 import java.io.IOException;
+import javax.ws.rs.core.Application;
+import org.glassfish.jersey.server.ResourceConfig;
 import org.junit.Test;
 
 /**
  *
  * @author idoga
  */
-public class academicvisapiTest {
+public class academicvisapiTest extends org.glassfish.jersey.test.JerseyTest  {
+
+    @Override
+    protected Application configure() {
+        return new ResourceConfig(ApiResource.class);
+    }
     
     @Test
     public void parseApiResponseJson() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(AcademicApiResponse.class, new AcademicApiResponseDeserializer());        
+        mapper.registerModule(module);
+        
         String jsonA = getResponseJson();
         AcademicApiResponse apiResponse = mapper.readValue(jsonA, AcademicApiResponse.class);
         
@@ -39,11 +53,9 @@ public class academicvisapiTest {
         org.junit.Assert.assertEquals("iccta detecting inter component privacy leaks in android apps", paper.title);
         
         // Extended
-        String paperExt = paper.extendedProperties;
-        System.out.println("Ext = " + paper.extendedProperties);     
-        AcademicApiPaperExtended ext = mapper.readValue(paperExt, AcademicApiPaperExtended.class);
-        System.out.println("entities # = " + ext.venueFullName);
-        org.junit.Assert.assertEquals("International Conference on Software Engineering", ext.venueFullName);
+        AcademicApiPaperExtended paperExt = paper.extendedProperties;
+        System.out.println("entities # = " + paperExt.venueFullName);
+        org.junit.Assert.assertEquals("International Conference on Software Engineering", paperExt.venueFullName);
     }    
     
     private String getResponseJson() {

@@ -56,11 +56,10 @@ public class ApiResource {
         Response response = invocationBuilder.get();
         String entityString = response.readEntity(String.class);
         
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = appResources.getMapper();
         AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
-        //unmarshal JSON...
         
-        return response;
+        return Response.ok(readValue.expr).build();
     }
 
 }
