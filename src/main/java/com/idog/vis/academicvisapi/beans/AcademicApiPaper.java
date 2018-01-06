@@ -18,6 +18,25 @@ public class AcademicApiPaper {
     @JsonProperty("Ti")
     public String title;   
     
+    @JsonProperty("Y")
+    public String year;       
+    
     @JsonProperty("E")
     public AcademicApiPaperExtended extendedProperties;
+
+    public int getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getYear() {
+        return year;
+    }
+
+    public AcademicApiPaperExtended getExtendedProperties() {
+        return extendedProperties;
+    }
 }
