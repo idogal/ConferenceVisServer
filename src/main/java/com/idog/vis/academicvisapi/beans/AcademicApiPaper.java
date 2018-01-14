@@ -5,26 +5,64 @@
  */
 package com.idog.vis.academicvisapi.beans;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  * @author idoga
  */
 public class AcademicApiPaper {
-    @JsonProperty("Id")
-    public int id;
-    
-    @JsonProperty("Ti")
-    public String title;   
-    
-    @JsonProperty("Y")
-    public String year;       
-    
-    @JsonProperty("E")
-    public AcademicApiPaperExtended extendedProperties;
 
-    public int getId() {
+    private long id;
+    private String title;
+    private String year;
+    private List<Long> references = new ArrayList<>();
+    private List<String> keywords = new ArrayList<>();
+    private List<AcademicApiAuthor> authors = new ArrayList<>();
+    private AcademicApiPaperExtended extendedProperties;
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setYear(String year) {
+        this.year = year;
+    }
+
+    public void setExtendedProperties(AcademicApiPaperExtended extendedProperties) {
+        this.extendedProperties = extendedProperties;
+    }
+
+    public void addAuthor(AcademicApiAuthor author) {
+        if (this.authors == null) {
+            this.authors = new ArrayList<>();
+        }
+        
+        this.authors.add(author);
+    }
+
+    public void addKeyword(String keyword) {
+        if (this.keywords == null) {
+            this.keywords = new ArrayList<>();
+        }
+        
+        this.keywords.add(keyword);
+    }
+
+    public void addReference(Long reference) {
+        if (this.references == null) {
+            this.references = new ArrayList<>();
+        }
+        
+        this.references.add(reference);
+    }
+
+    public long getId() {
         return id;
     }
 
@@ -34,6 +72,18 @@ public class AcademicApiPaper {
 
     public String getYear() {
         return year;
+    }
+
+    public List<AcademicApiAuthor> getAuthors() {
+        return authors;
+    }
+
+    public List<String> getKeywords() {
+        return keywords;
+    }
+
+    public List<Long> getReferences() {
+        return references;
     }
 
     public AcademicApiPaperExtended getExtendedProperties() {

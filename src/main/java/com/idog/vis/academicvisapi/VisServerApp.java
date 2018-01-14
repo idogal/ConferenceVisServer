@@ -21,7 +21,6 @@ public class VisServerApp extends ResourceConfig {
     public VisServerApp() {
         
         super (
-            CampaignResource.class,
             ApiResource.class
                 
             // Jackson support

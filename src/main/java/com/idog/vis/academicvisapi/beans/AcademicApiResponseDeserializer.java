@@ -60,10 +60,55 @@ public class AcademicApiResponseDeserializer extends StdDeserializer<AcademicApi
                 JsonNode tiNode = paperNode.get("Ti");
                 JsonNode idNode = paperNode.get("Id");
                 JsonNode yearNode = paperNode.get("Y");
-                paper.title = (tiNode != null) ? tiNode.asText() : null;
-                paper.id = (idNode != null) ? idNode.asInt() : null;
-                paper.year = (yearNode != null) ? yearNode.asText() : null;
+                paper.setTitle((tiNode != null) ? tiNode.asText() : null);
+                paper.setId((idNode != null) ? idNode.asInt() : null);
+                paper.setYear((yearNode != null) ? yearNode.asText() : null);
                 
+                JsonNode refNodes = paperNode.get("RId");
+                if (refNodes.isArray()) {                    
+                    for (JsonNode refNode : refNodes) {
+                        paper.addReference(refNode.asLong());
+                    }
+                }
+                
+                JsonNode keywordNodes = paperNode.get("W");
+                if (keywordNodes.isArray()) {                    
+                    for (JsonNode keywordNode : keywordNodes) {
+                        paper.addKeyword(keywordNode.asText());
+                    }
+                }                
+                
+                //////////////////////////
+                //Composited Properties //
+                //////////////////////////
+                ObjectMapper mapper = new ObjectMapper(); // Check if it's possible to use the same ObjectMapper instance in the AppResources
+                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);                
+                
+                //Authos
+                JsonNode authorNodes = paperNode.get("AA");
+                if (authorNodes == null) {
+                    continue;
+                }
+                
+                if (authorNodes.isArray()) {
+                    for (JsonNode authorNode : authorNodes) {
+                        JsonNode authorNameNode = authorNode.get("AuN");
+                        JsonNode authorIdNode = authorNode.get("AuId");
+                        JsonNode affNameNode = authorNode.get("AfN");
+                        JsonNode affIdNode = authorNode.get("AfId");
+                        JsonNode authorOrderNode = authorNode.get("S");
+                        
+                        String authorName = (authorNameNode != null) ? authorNameNode.asText() : null;
+                        long authorId = (authorIdNode != null) ? authorIdNode.asLong() : null;
+                        String affName = (affNameNode != null) ? affNameNode.asText() : null;
+                        long affId = (affIdNode != null) ? affIdNode.asLong() : null;
+                        int order = (authorOrderNode != null) ? authorOrderNode.asInt() : null;
+                        
+                        paper.addAuthor(new AcademicApiAuthor(authorName, authorId, affName, affId, order));
+                    }
+                }
+                
+
                 // Extended, by deserialising again
                 JsonNode extendedNode = paperNode.get("E");
                 if (extendedNode == null) {
@@ -71,11 +116,8 @@ public class AcademicApiResponseDeserializer extends StdDeserializer<AcademicApi
                     continue;
                 }
                 String extendedString = extendedNode.asText();
-
-                ObjectMapper mapper = new ObjectMapper(); // Check if it's possible to use the same ObjectMapper instance in the AppResources
-                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                 AcademicApiPaperExtended paperExtended = mapper.readValue(extendedString, AcademicApiPaperExtended.class);
-                paper.extendedProperties = paperExtended;
+                paper.setExtendedProperties(paperExtended);
 
                 response.entities.add(paper);
 

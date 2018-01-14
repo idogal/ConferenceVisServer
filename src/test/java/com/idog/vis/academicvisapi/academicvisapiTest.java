@@ -49,11 +49,11 @@ public class academicvisapiTest extends org.glassfish.jersey.test.JerseyTest  {
         
         // Paper Entity
         AcademicApiPaper paper = apiResponse.entities.get(0);
-        System.out.println("Title = " + paper.title);
-        org.junit.Assert.assertEquals("iccta detecting inter component privacy leaks in android apps", paper.title);
+        System.out.println("Title = " + paper.getTitle());
+        org.junit.Assert.assertEquals("iccta detecting inter component privacy leaks in android apps", paper.getTitle());
         
         // Extended
-        AcademicApiPaperExtended paperExt = paper.extendedProperties;
+        AcademicApiPaperExtended paperExt = paper.getExtendedProperties();
         System.out.println("entities # = " + paperExt.venueFullName);
         org.junit.Assert.assertEquals("International Conference on Software Engineering", paperExt.venueFullName);
     }    

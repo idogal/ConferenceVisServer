@@ -9,13 +9,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.VisServerRequestResources;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
-import com.idog.vis.academicvisapi.beans.AcademicApiPaperExtended;
 import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
 import java.io.IOException;
 import java.time.Year;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -34,7 +34,6 @@ import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,6 +42,7 @@ import org.glassfish.jersey.client.ClientConfig;
 /**
  *
  * @author idoga
+ * @see <a href="https://docs.microsoft.com/en-us/azure/cognitive-services/academic-knowledge/home"></a>
  */
 @Path("/demo")
 public class ApiResource {
@@ -53,15 +53,59 @@ public class ApiResource {
     private final String ACADEMIC_API_SUBSCRIPTION_KEY = "e1878999137d481089b706561bd0f5be";
     private final String EXPECTED_BV_VALUE = "WORKSHOP ON COOPERATIVE AND HUMAN ASPECTS OF SOFTWARE ENGINEERING";
     private final String EXPECTED_CN_VALUE = "chase";
-    
-    @Inject private VisServerRequestResources requestResources;
-    @Inject private VisServerAppResources appResources;    
-    @Context ServletContext servletContext;
-    @Context HttpServletRequest servletRequest;
-    
+
+    @Inject
+    private VisServerRequestResources requestResources;
+    @Inject
+    private VisServerAppResources appResources;
+    @Context
+    ServletContext servletContext;
+    @Context
+    HttpServletRequest servletRequest;
+
     private static final Logger LOGGER = LogManager.getLogger("VisApi");
 
-    @Path("/")
+    @Path("")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getChasePapers(
+            @DefaultValue("") @QueryParam("id") String id) throws IOException {
+        LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
+        
+        if (id.isEmpty()) {
+            LOGGER.warn("id parameter must be passed");
+            return Response.status(Response.Status.BAD_REQUEST).entity("{\"error\": \"id parameter must be passed\"}").build();
+        }
+        
+        List<AcademicApiPaper> chasePapers = getChasePaperById(id);
+        
+        return Response.ok().entity(chasePapers).build();
+    }
+
+     
+   private List<AcademicApiPaper> getChasePaperById(String id) throws IOException {
+        String expr = "Id=" + id;
+        String attributes = "Id,Ti,AA.AuN,AA.AuId,AA.AfN,AA.AfId,AA.S,F.FN,F.FId,RId,W";
+        List<AbstractMap.SimpleEntry<String,Object>> params = new ArrayList<>();
+        params.add(new AbstractMap.SimpleEntry<>("expr", expr));
+        params.add(new AbstractMap.SimpleEntry<>("attributes", attributes));
+        String entityString = queryTheAcademicApi(params);
+        
+        ObjectMapper mapper = appResources.getMapper();
+        AcademicApiResponse readValue;
+        try {
+            readValue = mapper.readValue(entityString, AcademicApiResponse.class);
+        } catch (IOException ex) {
+            LOGGER.error(ex.getMessage());
+            throw ex;
+        }
+        LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
+
+        LOGGER.debug("{} papers were found with '{}' id", readValue.entities.size(), id);
+        return readValue.entities;        
+    }
+    
+    @Path("/chase_papers")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getChasePapers(
@@ -71,7 +115,7 @@ public class ApiResource {
 
         LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
         ApiResourceRequest request = new ApiResourceRequest(year, count);
-        
+
         List<AcademicApiPaper> papers = null;
         ApiResourceResponse cachedResponse = null;
         if (!noCache) {
@@ -82,7 +126,7 @@ public class ApiResource {
                 return Response.ok().entity(papers).build();
             }
         }
-        
+
         LOGGER.debug("No cache. Getting items...");
         if (!year.isEmpty()) {
             LOGGER.debug("Got " + count + " papers for year: " + year);
@@ -104,33 +148,32 @@ public class ApiResource {
 
     private List<AcademicApiPaper> getPapersFromApi(String year, int count) throws IOException {
         List<AcademicApiPaper> papers = new ArrayList<>();
-        
+
         papers.addAll(getPapersFromApiByExtendedProps(year, count));
         papers.addAll(getPapersFromApiByConferenceName(year, count));
-        
+
         LOGGER.info("{} papers were retrieved in total.", papers.size());
         return papers;
     }
+
+    private String queryTheAcademicApi(List<AbstractMap.SimpleEntry<String, Object>> params) {
+        return queryTheAcademicApi(this.MS_COGNITIVE_API_TARGET, ACEDEMIC_API_EVALUATE_PATH, params);
+    }
     
-    private String queryTheAcademicApi(String conferenceName, String year, int count) {
+    private String queryTheAcademicApi(String webTarget, String webPath, List<AbstractMap.SimpleEntry<String, Object>> params) {
         LOGGER.debug("Sending a query to the MS Academic API.");
         
         ClientConfig clientConfig = new ClientConfig();
         Client client = ClientBuilder.newClient(clientConfig);
         
-        String expr = "Composite(C.CN='" + conferenceName + "')";
-        if (year != null && !year.isEmpty()) {
-            expr = "And(" + expr + ", Y=" + year + ")";
+        WebTarget target = client.target(webTarget);
+        target = target.path(webPath);
+        for (AbstractMap.SimpleEntry<String, Object> param : params) {
+            target = target.queryParam(param.getKey(), param.getValue().toString());
         }
-
-        WebTarget webTarget = client.target(MS_COGNITIVE_API_TARGET);
-        webTarget = webTarget.path(ACEDEMIC_API_EVALUATE_PATH);
-        webTarget = webTarget.queryParam("expr", expr);
-        webTarget = webTarget.queryParam("attributes", "Ti,Id,Y,E");
-        webTarget = webTarget.queryParam("Count", count);
-
-        LOGGER.debug("Target: {}", webTarget.toString());
-        Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+        
+        LOGGER.debug("Target: {}, {}", target.toString(), params.toString());
+        Invocation.Builder invocationBuilder = target.request(MediaType.APPLICATION_JSON);
         invocationBuilder.header("Ocp-Apim-Subscription-Key", ACADEMIC_API_SUBSCRIPTION_KEY);
 
         try {
@@ -138,19 +181,35 @@ public class ApiResource {
             int status = response.getStatus();
             LOGGER.debug("Response status: {} - {}", String.valueOf(status), response.getStatusInfo().getReasonPhrase());
             if (status < 200 || status > 300) {
-                LOGGER.error(response.getStatusInfo().getReasonPhrase());
+                String errorOutput = response.readEntity(String.class);
+                LOGGER.error(response.getStatusInfo().getReasonPhrase() + " - " + errorOutput);
                 throw new WebApplicationException(response.getStatusInfo().getReasonPhrase());
             }
-            
+
             LOGGER.debug("Entity was sucessfully retrieved from the API.");
             return response.readEntity(String.class);
-            
+
         } catch (ProcessingException procEx) {
             LOGGER.error(procEx.getMessage());
             throw procEx;
-        }
+        }        
     }
     
+    private String queryTheAcademicApi(String conferenceName, String year, int count) {
+
+        String expr = "Composite(C.CN='" + conferenceName + "')";
+        if (year != null && !year.isEmpty()) {
+            expr = "And(" + expr + ", Y=" + year + ")";
+        }
+        
+        List<AbstractMap.SimpleEntry<String, Object>> params = new ArrayList<>();
+        params.add(new AbstractMap.SimpleEntry<>("expr", expr));
+        params.add(new AbstractMap.SimpleEntry<>("attributes", "Ti,Id,Y,E"));
+        params.add(new AbstractMap.SimpleEntry<>("Count", count));
+        
+        return queryTheAcademicApi(params);        
+    }
+
     private List<AcademicApiPaper> getPapersFromApiByConferenceName(String year, int count) throws IOException {
         LOGGER.debug("Trying to get papers by the C.CN property.");
 
@@ -159,31 +218,31 @@ public class ApiResource {
         ObjectMapper mapper = appResources.getMapper();
         AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
         LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
-        
+
         LOGGER.debug("{} papers were found with '{}' value in the C.CN field", readValue.entities.size(), EXPECTED_CN_VALUE);
         return readValue.entities;
     }
-    
+
     private List<AcademicApiPaper> getPapersFromApiByExtendedProps(String year, int count) throws IOException {
         LOGGER.debug("Trying to get papers by the Extended properties.");
-        
-        String entityString = queryTheAcademicApi("icse", year, count);        
-        
+
+        String entityString = queryTheAcademicApi("icse", year, count);
+
         ObjectMapper mapper = appResources.getMapper();
         AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
         LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
-        
+
         List<AcademicApiPaper> papers = readValue.entities;
         Stream<AcademicApiPaper> filteredPapers
                 = papers.stream()
                         .filter(paper -> paper.getExtendedProperties() != null)
-                        .filter(paper -> 
-                                paper.getExtendedProperties().getBv().toUpperCase().contains(EXPECTED_BV_VALUE)
-                );
-                
+                        .filter(paper
+                                -> paper.getExtendedProperties().getBv().toUpperCase().contains(EXPECTED_BV_VALUE)
+                        );
+
         papers = filteredPapers.collect(Collectors.toList());
         LOGGER.debug("{} papers were found with '{}' value in the BV field", papers.size(), EXPECTED_BV_VALUE);
-        
+
         return papers;
     }
 }
