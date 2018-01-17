@@ -29,7 +29,6 @@ public class academicvisapiTest extends org.glassfish.jersey.test.JerseyTest  {
         return new ResourceConfig(ApiResource.class);
     }
     
-    @Test
     public void parseApiResponseJson() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

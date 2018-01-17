@@ -65,14 +65,14 @@ public class AcademicApiResponseDeserializer extends StdDeserializer<AcademicApi
                 paper.setYear((yearNode != null) ? yearNode.asText() : null);
                 
                 JsonNode refNodes = paperNode.get("RId");
-                if (refNodes.isArray()) {                    
+                if (refNodes != null && refNodes.isArray()) {                    
                     for (JsonNode refNode : refNodes) {
                         paper.addReference(refNode.asLong());
                     }
                 }
                 
                 JsonNode keywordNodes = paperNode.get("W");
-                if (keywordNodes.isArray()) {                    
+                if (keywordNodes != null && keywordNodes.isArray()) {                    
                     for (JsonNode keywordNode : keywordNodes) {
                         paper.addKeyword(keywordNode.asText());
                     }
@@ -85,12 +85,8 @@ public class AcademicApiResponseDeserializer extends StdDeserializer<AcademicApi
                 mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);                
                 
                 //Authos
-                JsonNode authorNodes = paperNode.get("AA");
-                if (authorNodes == null) {
-                    continue;
-                }
-                
-                if (authorNodes.isArray()) {
+                JsonNode authorNodes = paperNode.get("AA");                
+                if (authorNodes != null && authorNodes.isArray()) {
                     for (JsonNode authorNode : authorNodes) {
                         JsonNode authorNameNode = authorNode.get("AuN");
                         JsonNode authorIdNode = authorNode.get("AuId");
