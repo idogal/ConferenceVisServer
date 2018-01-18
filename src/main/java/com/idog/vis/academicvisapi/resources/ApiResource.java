@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
@@ -69,12 +70,19 @@ public class ApiResource {
 
     private static final Logger LOGGER = LogManager.getLogger("VisApi");
 
-    @Path("")
+    /**
+     * Get details of paper entities by an id
+     *
+     * @param id The academic API id of the paper
+     * @return
+     * @throws IOException
+     */
+    @Path("papers/{id}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getChasePapers(
-            @DefaultValue("") @QueryParam("id") String id) throws IOException {
-        
+            @DefaultValue("") @PathParam("id") String id) throws IOException {
+
         LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
 
         if (id.isEmpty()) {
@@ -94,21 +102,30 @@ public class ApiResource {
         return Response.ok().entity(chasePapers).build();
     }
 
-    @Path("/chase_papers")
+    /**
+     * Get details of <b>CHASE</b> papers entities by the year (or no year, for
+     * all years)
+     *
+     * @param year Papers from a specific conference year
+     * @param noCache True - for not using the cached results, false - for
+     * cached results
+     * @return
+     */
+    @Path("papers")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getChasePapers(
             @DefaultValue("") @QueryParam("Year") String year,
             @DefaultValue("false") @QueryParam("NoCache") boolean noCache) {
-        
+
         LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
-        
+
         List<AcademicApiPaper> allPapers = new ArrayList<>();
 
         try {
-            List<AcademicApiPaper> chasePapersIds = getChasePapersIds(1000, year, noCache);
-            allPapers = getChasePaperByIdMultiThreaded(chasePapersIds);
-            
+            List<AcademicApiPaper> papersOfChase = getPapersOfChaseConference(1000, year, noCache);
+            allPapers = getPapersDetails(papersOfChase);
+
         } catch (IOException | RuntimeException ex) {
             LOGGER.error(ex.getMessage());
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
@@ -118,9 +135,17 @@ public class ApiResource {
         return Response.ok().entity(allPapers).build();
     }
 
-    private List<AcademicApiPaper> getChasePaperByIdMultiThreaded(List<AcademicApiPaper> chasePapersIds) {
+    /**
+     * Get full paper details from the API, by the ID of the input paper list. 
+     * <br>Requests are sent in a multi-threaded manner, in multiple attempts, if a 429 result occurs.
+     *
+     * @param chasePapersIds A List of academic API papers
+     * @return A List of the corresponding academic API papers
+     *
+     */
+    private List<AcademicApiPaper> getPapersDetails(List<AcademicApiPaper> chasePapersIds) {
 
-        LOGGER.info("Trying to get full detials for papers list");        
+        LOGGER.info("Trying to get the full details of the input papers list");
         List<AcademicApiPaper> allPapers = new ArrayList<>();
 
         int startFrom = 0, batchSize = 10;
@@ -138,9 +163,10 @@ public class ApiResource {
 
             for (int i = startFrom; i <= currentFinishPosition; i++) {
                 AcademicApiPaper chasePaper = chasePapersIds.get(i);
-                
+
                 // Create thread
                 Future<List<AcademicApiPaper>> getPapersTask = executor.submit(() -> {
+                    int attempts = 0;
                     for (int j = 0; j < 10; j++) {
                         try {
                             long id = chasePaper.getId();
@@ -151,9 +177,10 @@ public class ApiResource {
                             LOGGER.warn(ex.getMessage());
                         }
                         TimeUnit.MILLISECONDS.sleep(j * 150);
+                        attempts = j;
                     }
 
-                    LOGGER.error("Could not get response after multiple trials");
+                    LOGGER.error("Could not get response after {} attempts", attempts);
                     return null;
                 });
 
@@ -165,14 +192,25 @@ public class ApiResource {
                 try {
                     List<AcademicApiPaper> papersFromThread = task.get();
                     if (papersFromThread != null) {
-                        allPapers.addAll(papersFromThread);                        
+                        allPapers.addAll(papersFromThread);
                     }
                 } catch (InterruptedException | ExecutionException ex) {
                     LOGGER.error(ex.getMessage());
                 }
             }
 
-            executor.shutdown();
+            try {
+                executor.shutdown();
+                executor.awaitTermination(60, TimeUnit.SECONDS);
+            } catch (InterruptedException ex) {
+                LOGGER.error(ex);
+            } finally {
+                if (!executor.isTerminated()) {
+                    LOGGER.error("cancel non-finished tasks");
+                }
+                executor.shutdownNow();
+            }
+
             startFrom = startFrom + batchSize;
         }
 
@@ -180,9 +218,17 @@ public class ApiResource {
         return allPapers;
     }
 
+    /**
+     * Build a request for the academic api, for a single paper, by an ID, and gets a broad list of attributes.
+     * @param id Academic API Id
+     * @return A list of papers matching this ID (probably just 1)
+     * @throws IOException
+     * @throws ExecutionException
+     * @throws WebApplicationException 
+     */
     private List<AcademicApiPaper> getChasePaperById(String id) throws IOException, ExecutionException, WebApplicationException {
         LOGGER.info("Building a request by an ID for: {}", id);
-        
+
         String expr = "Id=" + id;
         String attributes = "Id,Ti,AA.AuN,AA.AuId,AA.AfN,AA.AfId,AA.S,F.FN,F.FId,RId,W";
         List<AbstractMap.SimpleEntry<String, Object>> params = new ArrayList<>();
@@ -196,13 +242,19 @@ public class ApiResource {
 
         LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
 
-        LOGGER.info("{} papers were found with '{}' id", readValue.entities.size(), id);
+        if (readValue.entities.isEmpty()) {
+            LOGGER.warn("{} papers were found with '{}' id", readValue.entities.size(), id);
+        } else {
+            LOGGER.info("{} papers were found with '{}' id", readValue.entities.size(), id);
+        }
+
         return readValue.entities;
     }
 
-    private List<AcademicApiPaper> getChasePapersIds(int count, String year, boolean noCache) throws IOException {
+    
+    private List<AcademicApiPaper> getPapersOfChaseConference(int count, String year, boolean noCache) throws IOException {
 
-        LOGGER.info("Trying getting papers ids list...");        
+        LOGGER.info("Trying getting papers ids list...");
         ApiResourceRequest request = new ApiResourceRequest(year, count);
 
         List<AcademicApiPaper> papers;
@@ -216,9 +268,9 @@ public class ApiResource {
             }
         }
         papers = new ArrayList<>();
-        
+
         LOGGER.debug("No cache. Getting items...");
-        if (!year.isEmpty()) {            
+        if (!year.isEmpty()) {
             papers = getPapersFromApi(year, count);
         } else {
             Year thisYear = Year.now();
@@ -226,7 +278,7 @@ public class ApiResource {
             // Convert to MT
             ExecutorService executor = Executors.newWorkStealingPool();
             List<Future<List<AcademicApiPaper>>> tasks = new ArrayList<>();
-            
+
             for (int i = 2011; i < thisYear.getValue(); i++) {
                 final int threadYear = i;
                 Future<List<AcademicApiPaper>> getPapersTask = executor.submit(() -> {
@@ -235,29 +287,40 @@ public class ApiResource {
                             return getPapersFromApi(String.valueOf(threadYear), count);
                         } catch (WebApplicationException webEx) {
                             LOGGER.debug("Request failed, trying again (" + (j + 1) + ")");
-                        } 
+                        }
 
                         TimeUnit.MILLISECONDS.sleep(j * 150);
-                    }                    
+                    }
 
                     LOGGER.error("Could not get response after multiple trials");
-                    return null;    
+                    return null;
                 });
-                
+
                 tasks.add(getPapersTask);
             }
-            
+
             for (Future<List<AcademicApiPaper>> task : tasks) {
-                try {                
+                try {
                     List<AcademicApiPaper> papersFromThread = task.get();
                     if (papersFromThread != null) {
                         papers.addAll(papersFromThread);
                     }
                 } catch (InterruptedException | ExecutionException ex) {
                     LOGGER.error(ex.getMessage());
-                } 
+                }
             }
-            executor.shutdown();
+            
+            try {
+                executor.shutdown();
+                executor.awaitTermination(60, TimeUnit.SECONDS);
+            } catch (InterruptedException ex) {
+                LOGGER.error(ex);
+            } finally {
+                if (!executor.isTerminated()) {
+                    LOGGER.error("cancel non-finished tasks");
+                }
+                executor.shutdownNow();
+            }
         }
 
         cachedResponse = new ApiResourceResponse(papers);
@@ -338,9 +401,15 @@ public class ApiResource {
         int status = response.getStatus();
         LOGGER.debug("Response status: {} - {}", String.valueOf(status), response.getStatusInfo().getReasonPhrase());
         if (status < 200 || status > 300) {
+
             String errorOutput = response.readEntity(String.class);
-            LOGGER.error(response.getStatusInfo().getReasonPhrase() + " - " + errorOutput);
-            throw new WebApplicationException(response.getStatusInfo().getReasonPhrase());
+            if (status == 429) {
+                LOGGER.warn(response.getStatusInfo().getReasonPhrase() + " - " + errorOutput);
+                throw new WebApplicationException(response.getStatusInfo().getReasonPhrase());
+            } else {
+                LOGGER.error(response.getStatusInfo().getReasonPhrase() + " - " + errorOutput);
+                throw new WebApplicationException(response.getStatusInfo().getReasonPhrase());
+            }
         }
 
         LOGGER.debug("Entity was sucessfully retrieved from the API.");

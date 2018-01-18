@@ -14,12 +14,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class AcademicApiAuthor {
 
     @JsonProperty("AuN") private String authorName;
-    @JsonProperty("AuId") private long authorId;
+    @JsonProperty("AuId") private Long authorId;
     @JsonProperty("AfN") private String affiliationName;
-    @JsonProperty("AfId") private long affiliationId;
-    @JsonProperty("S") private int paperOrder;
+    @JsonProperty("AfId") private Long affiliationId;
+    @JsonProperty("S") private Integer paperOrder;
 
-    public AcademicApiAuthor(String authorName, long authorId, String affiliationName, long affiliationId, int paperOrder) {
+    public AcademicApiAuthor(String authorName, Long authorId, String affiliationName, Long affiliationId, Integer paperOrder) {
         this.authorName = authorName;
         this.authorId = authorId;
         this.affiliationName = affiliationName;
@@ -27,7 +27,7 @@ public class AcademicApiAuthor {
         this.paperOrder = paperOrder;
     }    
     
-    public long getAffiliationId() {
+    public Long getAffiliationId() {
         return affiliationId;
     }
 
@@ -35,7 +35,7 @@ public class AcademicApiAuthor {
         return affiliationName;
     }
 
-    public long getAuthorId() {
+    public Long getAuthorId() {
         return authorId;
     }
 
@@ -43,11 +43,11 @@ public class AcademicApiAuthor {
         return authorName;
     }
 
-    public int getPaperOrder() {
+    public Integer getPaperOrder() {
         return paperOrder;
     }
 
-    public void setAffiliationId(long affiliationId) {
+    public void setAffiliationId(Long affiliationId) {
         this.affiliationId = affiliationId;
     }
 
@@ -55,7 +55,7 @@ public class AcademicApiAuthor {
         this.affiliationName = affiliationName;
     }
 
-    public void setAuthorId(long authorId) {
+    public void setAuthorId(Long authorId) {
         this.authorId = authorId;
     }
 
@@ -63,7 +63,7 @@ public class AcademicApiAuthor {
         this.authorName = authorName;
     }
 
-    public void setPaperOrder(int paperOrder) {
+    public void setPaperOrder(Integer paperOrder) {
         this.paperOrder = paperOrder;
     }
 }

@@ -25,7 +25,7 @@ public class ApiCache {
                 = CacheBuilder.newBuilder()
                         .maximumSize(10)
                         //.weakKeys()
-                        .expireAfterAccess(120, TimeUnit.SECONDS)
+                        .expireAfterAccess(30, TimeUnit.MINUTES)
                         .build();
     }
 

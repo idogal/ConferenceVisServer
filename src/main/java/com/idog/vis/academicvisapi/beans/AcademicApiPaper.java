@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class AcademicApiPaper {
 
-    private long id;
+    private Long id;
     private String title;
     private String year;
     private List<Long> references = new ArrayList<>();
@@ -22,7 +22,7 @@ public class AcademicApiPaper {
     private List<AcademicApiAuthor> authors = new ArrayList<>();
     private AcademicApiPaperExtended extendedProperties;
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
