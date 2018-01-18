@@ -49,7 +49,7 @@ import org.glassfish.jersey.client.ClientConfig;
  * @see
  * <a href="https://docs.microsoft.com/en-us/azure/cognitive-services/academic-knowledge/home"></a>
  */
-@Path("/demo")
+@Path("/msapi")
 public class ApiResource {
 
     // HARD CODED VALUES
@@ -72,7 +72,7 @@ public class ApiResource {
 
     /**
      * Get details of paper entities by an id
-     *
+     * <br><br> Sample request: http://localhost:8097/VisAPI/msapi/papers/2022897498
      * @param id The academic API id of the paper
      * @return
      * @throws IOException
@@ -105,7 +105,7 @@ public class ApiResource {
     /**
      * Get details of <b>CHASE</b> papers entities by the year (or no year, for
      * all years)
-     *
+     * <br><br> Sample request: http://localhost:8097/VisAPI/msapi/papers?Year=2011
      * @param year Papers from a specific conference year
      * @param noCache True - for not using the cached results, false - for
      * cached results
