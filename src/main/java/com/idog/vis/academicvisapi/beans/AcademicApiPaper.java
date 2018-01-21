@@ -42,7 +42,7 @@ public class AcademicApiPaper {
         if (this.authors == null) {
             this.authors = new ArrayList<>();
         }
-        
+
         this.authors.add(author);
     }
 
@@ -50,7 +50,7 @@ public class AcademicApiPaper {
         if (this.keywords == null) {
             this.keywords = new ArrayList<>();
         }
-        
+
         this.keywords.add(keyword);
     }
 
@@ -58,7 +58,7 @@ public class AcademicApiPaper {
         if (this.references == null) {
             this.references = new ArrayList<>();
         }
-        
+
         this.references.add(reference);
     }
 
@@ -88,5 +88,15 @@ public class AcademicApiPaper {
 
     public AcademicApiPaperExtended getExtendedProperties() {
         return extendedProperties;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder stringValue = new StringBuilder();
+        stringValue.append("id: ").append(this.id).append(", title: ").append(this.title);
+        stringValue.append(", authors: ").append(this.authors.toString());
+        stringValue.append(", refs: ").append(this.references.toString());
+
+        return stringValue.toString();
     }
 }

@@ -21,7 +21,8 @@ public class VisServerApp extends ResourceConfig {
     public VisServerApp() {
         
         super (
-            ApiResource.class
+            ApiResource.class,
+            NetworkResource.class
                 
             // Jackson support
             //JacksonFeature.class
