@@ -97,7 +97,7 @@ public class VisMsApiService implements MsApiService {
                         } catch (IOException | ExecutionException ex) {
                             LOGGER.warn(ex.getMessage());
                         }
-                        TimeUnit.MILLISECONDS.sleep(j * 150);
+                        TimeUnit.MILLISECONDS.sleep((j + 1) * 200);
                         attempts = j;
                     }
                     LOGGER.error("Could not get response after {} attempts", attempts);
@@ -181,7 +181,7 @@ public class VisMsApiService implements MsApiService {
             // Convert to MT
             ExecutorService executor = Executors.newWorkStealingPool();
             List<Future<List<AcademicApiPaper>>> tasks = new ArrayList<>();
-            for (int i = 2011; i < thisYear.getValue(); i++) {
+            for (int i = 2010; i < thisYear.getValue(); i++) {
                 final int threadYear = i;
                 Future<List<AcademicApiPaper>> getPapersTask = executor.submit(() -> {
                     for (int j = 0; j < 10; j++) {
@@ -190,7 +190,7 @@ public class VisMsApiService implements MsApiService {
                         } catch (WebApplicationException webEx) {
                             LOGGER.debug("Request failed, trying again (" + (j + 1) + ")");
                         }
-                        TimeUnit.MILLISECONDS.sleep(j * 150);
+                        TimeUnit.MILLISECONDS.sleep((j + 1) * 200);
                     }
                     LOGGER.error("Could not get response after multiple trials");
                     return null;
