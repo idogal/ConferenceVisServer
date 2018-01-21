@@ -16,16 +16,20 @@ import org.junit.Test;
  * @author idoga
  */
 public class MockServiceTest {
+    
     @Test
     public void testMock() {
+        // For debugging, print mock
+        boolean print = false;
+        
         MockService mockService = new MockService();
-        List<AcademicApiPaper> mockPapers = mockService.mockPapers();
+        List<AcademicApiPaper> mockPapers = mockService.mockPapersRandom(print);
         
         Assert.assertEquals(10, mockPapers.size());
         
         AcademicApiPaper paper = mockPapers.get(0);
         List<AcademicApiAuthor> authors = paper.getAuthors();
-        Assert.assertEquals(10, authors.size());
+        Assert.assertEquals(3, authors.size());
         
         List<Long> refs = paper.getReferences();
         Assert.assertEquals(10, refs.size());
