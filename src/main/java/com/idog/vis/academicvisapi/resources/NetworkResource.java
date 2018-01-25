@@ -5,10 +5,15 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
 import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
+import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdgeSerializer;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,8 +64,22 @@ public class NetworkResource {
             LOGGER.error(ex.getMessage());
             Response.serverError();
         }
+        
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        Class<List<VisCouplingGraphEdge>> classType = (Class<List<VisCouplingGraphEdge>>) processPapersList.getClass();
+        module.addSerializer(classType, new VisCouplingGraphEdgeSerializer());
+        mapper.registerModule(module);
+        
+        String serialized = "";
+        try {
+            serialized = mapper.writeValueAsString(processPapersList);
+        } catch (JsonProcessingException ex) {
+            LOGGER.error(ex.getMessage());
+            Response.serverError();
+        }
 
-        return Response.ok().entity(processPapersList).build();
+        return Response.ok().entity(serialized).build();
     }
 
     public List<VisCouplingGraphEdge> processPapersList(List<AcademicApiPaper> chasePapers) {
