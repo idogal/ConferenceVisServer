@@ -4,11 +4,15 @@
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
-        <File name="MyFile" fileName="C:\\Logs\\VisApi\\VisApiApp.log">
+        <RollingFile name="MyFile" fileName="/ApiLogs/VisApiApp.log" filePattern="VisApiLogs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log">
             <PatternLayout>
                 <Pattern>%d %p [%t] %C{2} %M %L - %m%n</Pattern>
             </PatternLayout>
-        </File>   
+            <Policies>
+              <TimeBasedTriggeringPolicy />
+              <SizeBasedTriggeringPolicy size="30 MB"/>
+            </Policies>
+        </RollingFile >   
     </Appenders>
     <Loggers>
         <Root level="debug">
