@@ -25,10 +25,6 @@ public class VisPaperAuthor {
         this.name = name;
     }
 
-    public void setRefs(List<VisPaperReference> refs) {
-        this.refs = refs;
-    }
-
     public void addRefs(List<VisPaperReference> refs) {
         this.refs.addAll(refs);
     }    

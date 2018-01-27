@@ -44,8 +44,18 @@ public class VisCouplingGraphEdgeSerializer extends StdSerializer<List<VisCoupli
         for (VisCouplingGraphEdge edge : values) {
             jgen.writeStartObject();
             jgen.writeStringField("authorNameA", edge.getAuthorA().getName());
-            jgen.writeStringField("authorNameB", edge.getAuthorB().getName());
-            jgen.writeNumberField("coupling", edge.getCouplingStrength());
+            jgen.writeStringField("authorNameB", edge.getAuthorB().getName());            
+            
+            List<Long> matchingPapers = edge.getCoupling().getMatchingPapers();
+            jgen.writeFieldName("refs");
+            
+            jgen.writeStartArray();
+            for (Long matchingPaper : matchingPapers) {
+                jgen.writeNumber(matchingPaper);
+            }
+            jgen.writeEndArray();
+            
+            jgen.writeNumberField("coupling", edge.getCoupling().getCouplingStrength());
             jgen.writeEndObject();
         }
         jgen.writeEndArray();

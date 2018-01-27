@@ -13,13 +13,13 @@ public class VisCouplingGraphEdge {
     
     private VisPaperAuthor authorA;
     private VisPaperAuthor authorB;
-    private int couplingStrength;
+    private VisSimpleCoupling coupling;
     private boolean directional;
 
-    public VisCouplingGraphEdge(VisPaperAuthor authorA, VisPaperAuthor authorB, int couplingStrength, boolean directional) {
+    public VisCouplingGraphEdge(VisPaperAuthor authorA, VisPaperAuthor authorB, VisSimpleCoupling coupling, boolean directional) {
         this.authorA = authorA;
         this.authorB = authorB;
-        this.couplingStrength = couplingStrength;
+        this.coupling = coupling;
         this.directional = directional;
     }
 
@@ -31,8 +31,8 @@ public class VisCouplingGraphEdge {
         return authorB;
     }
 
-    public int getCouplingStrength() {
-        return couplingStrength;
+    public VisSimpleCoupling getCoupling() {
+        return coupling;
     }
 
     public boolean isDirectional() {
@@ -41,6 +41,6 @@ public class VisCouplingGraphEdge {
 
     @Override
     public String toString() {
-        return "Edge: " + authorA.getName() + " -" + ((directional) ? "> " : " ") + authorB.getName() + " (" + couplingStrength + ")";
+        return "Edge: " + authorA.getName() + " -" + ((directional) ? "> " : " ") + authorB.getName() + " (" + coupling + ")";
     }
 }

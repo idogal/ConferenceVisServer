@@ -15,8 +15,6 @@ import com.idog.vis.academicvisapi.resources.ApiResourceResponse;
 import com.idog.vis.academicvisapi.utility.ApiCache;
 import java.io.IOException;
 import javax.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  *
@@ -24,30 +22,37 @@ import org.apache.logging.log4j.Logger;
  */
 @Singleton
 public class VisServerAppResources {
-    private ConfigReader configReader;
+    //private ConfigReader configReader;
     ObjectMapper mapper = new ObjectMapper();
-    //private VisApiCache<String, List<AcademicApiPaper>> apiCache = new VisApiCache<>(10, 10, 10);
     private ApiCache cache = new ApiCache();
     
     public ObjectMapper getMapper() {
         return mapper;
     }
 
-    public ConfigReader getConfigReader() {
-        return configReader;
-    }
+    //public ConfigReader getConfigReader() {
+    //    return configReader;
+    //}
 
     public ApiCache getCache() {
         return cache;
     }
     
-    public ApiResourceResponse getFromCache(ApiResourceRequest key) {        
-        return cache.getApiResponse(key);
+    public ApiResourceResponse getChasePaperFromCache(ApiResourceRequest key) {        
+        return cache.getChasePapersResponse(key);
     }
     
-    public void addToCache(ApiResourceRequest key, ApiResourceResponse value) {
-        cache.putApiResponse(key, value);
+    public AcademicApiResponse getPaperByIdFromCache(String key) {        
+        return cache.getByIdResponse(key);
+    }    
+    
+    public void addChasePapersToCache(ApiResourceRequest key, ApiResourceResponse value) {
+        cache.putChasePapersResponse(key, value);
     }
+    
+    public void addPaperByIdToCache(String key, AcademicApiResponse value) {
+        cache.putByIdResponse(key, value);
+    }    
     
     public VisServerAppResources() {         
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);        
@@ -55,9 +60,9 @@ public class VisServerAppResources {
         module.addDeserializer(AcademicApiResponse.class, new AcademicApiResponseDeserializer());        
         mapper.registerModule(module);        
         
-        try {
-            configReader = new ConfigReader.ConfigReaderBuilder().buildDefault();
-        } catch (IOException ex) {
-        }        
+//        try {
+//            configReader = new ConfigReader.ConfigReaderBuilder().buildDefault();
+//        } catch (IOException ex) {
+//        }        
     }    
 }

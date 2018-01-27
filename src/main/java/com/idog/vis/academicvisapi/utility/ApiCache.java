@@ -8,6 +8,7 @@ package com.idog.vis.academicvisapi.utility;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
+import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
 import com.idog.vis.academicvisapi.resources.ApiResourceRequest;
 import com.idog.vis.academicvisapi.resources.ApiResourceResponse;
 import java.util.concurrent.TimeUnit;
@@ -18,26 +19,46 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApiCache {
 
-    Cache<ApiResourceRequest, ApiResourceResponse> apiResponses;
+    private Cache<ApiResourceRequest, ApiResourceResponse> apiChasePapersResponses;
+    private Cache<String, AcademicApiResponse> apiByIdResponses;
 
     public ApiCache() {
-        apiResponses
+        apiChasePapersResponses
                 = CacheBuilder.newBuilder()
                         .maximumSize(10)
                         //.weakKeys()
-                        .expireAfterAccess(30, TimeUnit.MINUTES)
+                        .expireAfterAccess(60, TimeUnit.MINUTES)
                         .build();
+        
+        apiByIdResponses
+                = CacheBuilder.newBuilder()
+                        .maximumSize(1000)
+                        //.weakKeys()
+                        .expireAfterAccess(60, TimeUnit.MINUTES)
+                        .build();        
     }
 
-    public Cache<ApiResourceRequest, ApiResourceResponse> getApiResponses() {
-        return apiResponses;
+    public Cache<ApiResourceRequest, ApiResourceResponse> getChasePapersResponses() {
+        return apiChasePapersResponses;
     }
 
-    public ApiResourceResponse getApiResponse(ApiResourceRequest key) {
-        return apiResponses.getIfPresent(key);
+    public Cache<String, AcademicApiResponse> getByIdResponses() {
+        return apiByIdResponses;
     }
 
-    public void putApiResponse(ApiResourceRequest key, ApiResourceResponse value) {
-        apiResponses.put(key, value);
+    public ApiResourceResponse getChasePapersResponse(ApiResourceRequest key) {
+        return apiChasePapersResponses.getIfPresent(key);
     }
+    
+    public AcademicApiResponse getByIdResponse(String id) {
+        return apiByIdResponses.getIfPresent(id);
+    }    
+
+    public void putChasePapersResponse(ApiResourceRequest key, ApiResourceResponse value) {
+        apiChasePapersResponses.put(key, value);
+    }
+    
+    public void putByIdResponse(String id, AcademicApiResponse value) {
+        apiByIdResponses.put(id, value);
+    }    
 }
