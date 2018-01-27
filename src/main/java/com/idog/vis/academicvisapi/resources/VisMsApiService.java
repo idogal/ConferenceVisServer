@@ -55,7 +55,7 @@ public class VisMsApiService implements MsApiService {
     public List<AcademicApiPaper> getChasePapersAsList(String year, boolean noCache) throws IOException {
         List<AcademicApiPaper> allPapers = new ArrayList<>();
         List<AcademicApiPaper> papersOfChase = getPapersOfChaseConference(1000, year, noCache);
-        allPapers = getPapersDetails(papersOfChase);
+        allPapers = getPapersDetails(papersOfChase, noCache);
         return allPapers;
     }    
     
@@ -68,7 +68,7 @@ public class VisMsApiService implements MsApiService {
      * @return A List of the corresponding academic API papers
      *
      */
-    private List<AcademicApiPaper> getPapersDetails(List<AcademicApiPaper> chasePapersIds) {
+    private List<AcademicApiPaper> getPapersDetails(List<AcademicApiPaper> chasePapersIds, boolean noCache) {
         LOGGER.info("Trying to get the full details of the input papers list");
         List<AcademicApiPaper> allPapers = new ArrayList<>();
         int startFrom = 0;
@@ -91,7 +91,7 @@ public class VisMsApiService implements MsApiService {
                     for (int j = 0; j < 10; j++) {
                         try {
                             long id = chasePaper.getId();
-                            return getChasePaperById(String.valueOf(id));
+                            return getChasePaperById(String.valueOf(id), noCache);
                         } catch (WebApplicationException webEx) {
                             LOGGER.debug("Request failed, trying again (" + (j + 1) + ")");
                         } catch (IOException | ExecutionException ex) {
@@ -165,7 +165,7 @@ public class VisMsApiService implements MsApiService {
         List<AcademicApiPaper> papers;
         ApiResourceResponse cachedResponse = null;
         if (!noCache) {
-            cachedResponse = this.appResources.getFromCache(request);
+            cachedResponse = this.appResources.getChasePaperFromCache(request);
             papers = (cachedResponse == null) ? null : cachedResponse.getPapers();
             if (papers != null && !papers.isEmpty()) {
                 LOGGER.info("Got ids for {} cached papers.", papers.size());
@@ -220,7 +220,7 @@ public class VisMsApiService implements MsApiService {
             }
         }
         cachedResponse = new ApiResourceResponse(papers);
-        this.appResources.addToCache(request, cachedResponse);
+        this.appResources.addChasePapersToCache(request, cachedResponse);
         LOGGER.info("Got ids for {} new papers.", papers.size());
         return papers;
     }
@@ -235,8 +235,20 @@ public class VisMsApiService implements MsApiService {
      * @throws ExecutionException
      * @throws WebApplicationException
      */
-    List<AcademicApiPaper> getChasePaperById(String id) throws IOException, ExecutionException, WebApplicationException {
+    List<AcademicApiPaper> getChasePaperById(String id, boolean noCache) throws IOException, ExecutionException, WebApplicationException {
         LOGGER.info("Building a request by an ID for: {}", id);
+        AcademicApiResponse readValue; 
+        
+        // Try to get from cache
+        if (!noCache) {
+            readValue = this.appResources.getPaperByIdFromCache(id);
+            if (readValue != null) {
+                LOGGER.info("Got data for id {} from cache", id);
+                return readValue.entities;
+            }
+        }        
+        
+        // Send a query to the API if there is no cache
         String expr = "Id=" + id;
         String attributes = "Id,Ti,AA.AuN,AA.AuId,AA.AfN,AA.AfId,AA.S,F.FN,F.FId,RId,W";
         List<AbstractMap.SimpleEntry<String, Object>> params = new ArrayList<>();
@@ -244,8 +256,9 @@ public class VisMsApiService implements MsApiService {
         params.add(new AbstractMap.SimpleEntry<>("attributes", attributes));
         String entityString = queryTheAcademicApi(params);
         ObjectMapper mapper = this.appResources.getMapper();
-        AcademicApiResponse readValue;
-        readValue = mapper.readValue(entityString, AcademicApiResponse.class);
+        readValue = mapper.readValue(entityString, AcademicApiResponse.class);        
+        this.appResources.addPaperByIdToCache(id, readValue);
+        
         LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
         if (readValue.entities.isEmpty()) {
             LOGGER.warn("{} papers were found with '{}' id", readValue.entities.size(), id);

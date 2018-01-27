@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -47,6 +48,12 @@ public class NetworkResource {
     private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger("VisApi");
     private final VisNetworkProcessor visProc = new VisNetworkProcessor();
     
+    /**
+     * Sample request: http://localhost:8097/VisAPI/network/nodes?year=2011
+     * @param year
+     * @param noCache
+     * @return 
+     */
     @Path("nodes")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -60,6 +67,10 @@ public class NetworkResource {
         try {
             List<AcademicApiPaper> chasePapers = msApiService.getChasePapersAsList(year, noCache);
             processPapersList = processPapersList(chasePapers);
+            
+            processPapersList = processPapersList.stream()
+                    .filter((VisCouplingGraphEdge edge) -> edge.getCoupling().getCouplingStrength() > 0)
+                    .collect(Collectors.toList());
         } catch (IOException ex) {
             LOGGER.error(ex.getMessage());
             Response.serverError();

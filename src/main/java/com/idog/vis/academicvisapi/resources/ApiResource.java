@@ -5,23 +5,13 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.VisServerRequestResources;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
-import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
 import java.io.IOException;
-import java.time.Year;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -31,17 +21,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.glassfish.jersey.client.ClientConfig;
 
 /**
  *
@@ -86,7 +70,7 @@ public class ApiResource {
 
         List<AcademicApiPaper> chasePapers;
         try {
-            chasePapers = msApiService.getChasePaperById(id);
+            chasePapers = msApiService.getChasePaperById(id, false);
         } catch (ExecutionException ex) {
             LOGGER.error(ex);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
