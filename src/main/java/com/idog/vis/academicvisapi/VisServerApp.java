@@ -30,5 +30,6 @@ public class VisServerApp extends ResourceConfig {
         
         this.register(new VisServerAppBinder());
         this.register(new VisServerAppRequestBinder());        
+        this.register(new CORSFilter());       
     }
 }
