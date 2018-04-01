@@ -10,6 +10,7 @@ import com.idog.vis.academicvisapi.resources.vismodel.VisPaperAuthor;
 import com.idog.vis.academicvisapi.beans.AcademicApiAuthor;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
 import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
+import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphNode;
 import com.idog.vis.academicvisapi.resources.vismodel.VisPaperReference;
 import com.idog.vis.academicvisapi.resources.vismodel.VisSimpleCoupling;
 import java.util.ArrayList;
@@ -26,35 +27,38 @@ import org.apache.logging.log4j.Logger;
  * @author idoga
  */
 public class VisNetworkProcessor implements NetworkProcessor {
+
     private static final Logger LOGGER = LogManager.getLogger(VisNetworkProcessor.class);
-    
+
     @Override
     public List<VisCouplingGraphEdge> processSimpleCoupling(List<AcademicApiPaper> chasePapers) {
-        
+
         List<VisCouplingGraphEdge> edges = new ArrayList<>();
-        
-        Map<VisPaperAuthor, VisPaperAuthor> visAuthors = deriveAuthorsListFromPapersList(chasePapers);
+
+        Map<VisPaperAuthor, VisPaperAuthor> visAuthors = deriveAuthorsToAuthorsMap(chasePapers);
         for (Map.Entry<VisPaperAuthor, VisPaperAuthor> authorEntryA : visAuthors.entrySet()) {
             VisPaperAuthor visAuthorA = authorEntryA.getValue();
 
             for (Map.Entry<VisPaperAuthor, VisPaperAuthor> authorEntryB : visAuthors.entrySet()) {
-                VisPaperAuthor visAuthorB = authorEntryB.getValue();                
+                VisPaperAuthor visAuthorB = authorEntryB.getValue();
                 VisSimpleCoupling couplingAtoB = calculateSimpleCouplingOfAuthors(visAuthorA, visAuthorB);
-                VisSimpleCoupling couplingBtoA = calculateSimpleCouplingOfAuthors(visAuthorB, visAuthorA);                
-                
+                VisSimpleCoupling couplingBtoA = calculateSimpleCouplingOfAuthors(visAuthorB, visAuthorA);
+
                 if (!visAuthorA.equals(visAuthorB)) {
                     VisCouplingGraphEdge eAtoB = new VisCouplingGraphEdge(visAuthorA, visAuthorB, couplingAtoB, true);
                     VisCouplingGraphEdge eBtoA = new VisCouplingGraphEdge(visAuthorB, visAuthorA, couplingBtoA, true);
-                    
-                    if (eAtoB.getCoupling().getCouplingStrength() > 0)
+
+                    if (eAtoB.getCoupling().getCouplingStrength() > 0) {
                         edges.add(eAtoB);
-                    
-                    if (eBtoA.getCoupling().getCouplingStrength() > 0)
+                    }
+
+                    if (eBtoA.getCoupling().getCouplingStrength() > 0) {
                         edges.add(eBtoA);
+                    }
                 }
             }
         }
-        
+
         return edges;
     }
 
@@ -70,7 +74,7 @@ public class VisNetworkProcessor implements NetworkProcessor {
         if (authorA.equals(authorB)) {
             return coupling;
         }
-        
+
         List<VisPaperReference> refsA = authorA.getRefs();
         Set<VisPaper> papersB = authorB.getPapers();
 
@@ -81,13 +85,13 @@ public class VisNetworkProcessor implements NetworkProcessor {
                 }
             }
         }
-        
+
         return coupling;
     }
 
     @Override
     public void processAbcCoupling(List<AcademicApiPaper> chasePapers) {
-        Map<VisPaperAuthor, VisPaperAuthor> visAuthors = deriveAuthorsListFromPapersList(chasePapers);
+        Map<VisPaperAuthor, VisPaperAuthor> visAuthors = deriveAuthorsToAuthorsMap(chasePapers);
         for (Map.Entry<VisPaperAuthor, VisPaperAuthor> authorEntryA : visAuthors.entrySet()) {
             VisPaperAuthor visAuthorA = authorEntryA.getValue();
             String authorNameA = visAuthorA.getName();
@@ -116,10 +120,10 @@ public class VisNetworkProcessor implements NetworkProcessor {
     }
 
     @Override
-    public Map<VisPaperAuthor, VisPaperAuthor> deriveAuthorsListFromPapersList(List<AcademicApiPaper> chasePapers) {
+    public Map<VisPaperAuthor, VisPaperAuthor> deriveAuthorsToAuthorsMap(List<AcademicApiPaper> chasePapers) {
         Map<VisPaperAuthor, VisPaperAuthor> visAuthors = new HashMap<>();
         HashMap<Long, VisPaper> allVisPapers = new HashMap<>();
-        
+
         // The source is each paper from the MS API - there it is the basic entity
         for (AcademicApiPaper chasePaper : chasePapers) {
             long academicApiPaperId = chasePaper.getId();
@@ -128,7 +132,7 @@ public class VisNetworkProcessor implements NetworkProcessor {
             if (visPaper == null) {
                 visPaper = new VisPaper(chasePaper.getId());
             }
-            
+
             // Build a list of refs for the current paper (it is not dependent on the author)
             List<VisPaperReference> visReferences = new ArrayList<>();
             for (Long reference : chasePaper.getReferences()) {
@@ -136,7 +140,7 @@ public class VisNetworkProcessor implements NetworkProcessor {
                 visReferences.add(visPaperReference);
             }
             LOGGER.debug("Added refs for paper {} - {}", chasePaper.getId(), visReferences.toString());
-            
+
             // Create an author for each author of the original paper
             // The authors are now the "main" entity
             List<AcademicApiAuthor> msAuthors = chasePaper.getAuthors();
@@ -158,5 +162,27 @@ public class VisNetworkProcessor implements NetworkProcessor {
         }
 
         return visAuthors;
+    }
+
+    @Override
+    public Set<VisCouplingGraphNode> deriveAuthorsSet(List<AcademicApiPaper> chasePapers) {
+        Set<VisCouplingGraphNode> authors = new HashSet<>();
+        
+        for (AcademicApiPaper chasePaper : chasePapers) {
+            long academicApiPaperId = chasePaper.getId();
+            LOGGER.debug("Processing paper {}", academicApiPaperId);
+
+            // Create an author for each author of the original paper
+            // The authors are now the "main" entity
+            List<AcademicApiAuthor> msAuthors = chasePaper.getAuthors();
+            for (AcademicApiAuthor msAuthor : msAuthors) {
+
+                VisPaperAuthor visAuthor = new VisPaperAuthor(msAuthor.getAuthorName());
+                VisCouplingGraphNode authorNode = new VisCouplingGraphNode(visAuthor);
+                authors.add(authorNode);
+            }
+        }
+        
+        return authors;
     }
 }

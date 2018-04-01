@@ -12,9 +12,13 @@ import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
 import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
 import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdgeSerializer;
+import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphNode;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -44,30 +48,31 @@ public class NetworkResource {
     ServletContext servletContext;
     @Context
     HttpServletRequest servletRequest;
-    
+
     private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger("VisApi");
     private final VisNetworkProcessor visProc = new VisNetworkProcessor();
-    
+
     /**
-     * Sample request: http://localhost:8097/VisAPI/network/nodes?year=2011
+     * Sample request: http://localhost:8097/VisAPI/network/edges?year=2011
+     *
      * @param year
      * @param noCache
-     * @return 
+     * @return
      */
-    @Path("nodes")
+    @Path("edges")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getNodes(
+    public Response getEdges(
             @DefaultValue("") @QueryParam("Year") String year,
             @DefaultValue("false") @QueryParam("NoCache") boolean noCache) {
         LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
-        
+
         VisMsApiService msApiService = new VisMsApiService(appResources);
         List<VisCouplingGraphEdge> processPapersList = null;
         try {
             List<AcademicApiPaper> chasePapers = msApiService.getChasePapersAsList(year, noCache);
             processPapersList = processPapersList(chasePapers);
-            
+
             processPapersList = processPapersList.stream()
                     .filter((VisCouplingGraphEdge edge) -> edge.getCoupling().getCouplingStrength() > 0)
                     .collect(Collectors.toList());
@@ -75,16 +80,50 @@ public class NetworkResource {
             LOGGER.error(ex.getMessage());
             Response.serverError();
         }
-        
+
         ObjectMapper mapper = new ObjectMapper();
         SimpleModule module = new SimpleModule();
         Class<List<VisCouplingGraphEdge>> classType = (Class<List<VisCouplingGraphEdge>>) processPapersList.getClass();
         module.addSerializer(classType, new VisCouplingGraphEdgeSerializer());
         mapper.registerModule(module);
-        
+
         String serialized = "";
         try {
             serialized = mapper.writeValueAsString(processPapersList);
+        } catch (JsonProcessingException ex) {
+            LOGGER.error(ex.getMessage());
+            Response.serverError();
+        }
+
+        return Response.ok().entity(serialized).build();
+    }
+
+    @Path("nodes")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)    
+    public Response getNodes(
+            @DefaultValue("") @QueryParam("Year") String year,
+            @DefaultValue("false") @QueryParam("NoCache") boolean noCache) {
+
+        LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
+
+        VisMsApiService msApiService = new VisMsApiService(appResources);
+        List<VisCouplingGraphNode> graphNodes = null;
+        try {
+            List<AcademicApiPaper> chasePapers = msApiService.getChasePapersAsList(year, noCache);
+            graphNodes = getAuthorsList(chasePapers);
+
+        } catch (IOException ex) {
+            LOGGER.error(ex.getMessage());
+            Response.serverError();
+        }
+
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+
+        String serialized = "";
+        try {
+            serialized = mapper.writeValueAsString(graphNodes);
         } catch (JsonProcessingException ex) {
             LOGGER.error(ex.getMessage());
             Response.serverError();
@@ -97,4 +136,11 @@ public class NetworkResource {
         List<VisCouplingGraphEdge> edges = visProc.processSimpleCoupling(chasePapers);
         return edges;
     }
+    
+    public List<VisCouplingGraphNode> getAuthorsList(List<AcademicApiPaper> chasePapers) {
+        Set<VisCouplingGraphNode> nodesSet = visProc.deriveAuthorsSet(chasePapers);
+        List<VisCouplingGraphNode> nodes = new ArrayList<>();
+        nodes.addAll(nodesSet);
+        return nodes;
+    }    
 }
