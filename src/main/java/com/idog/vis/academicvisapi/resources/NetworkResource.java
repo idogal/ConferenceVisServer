@@ -10,19 +10,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdgeSerializer;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphNode;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphEdge;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphEdgeSerializer;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphNode;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
@@ -66,6 +66,15 @@ public class NetworkResource {
             @DefaultValue("") @QueryParam("Year") String year,
             @DefaultValue("false") @QueryParam("NoCache") boolean noCache) {
         LOGGER.info("Request recieved: {} {}", servletRequest.getRequestURI(), servletRequest.getQueryString());
+        
+        javax.naming.Context initCtx;
+        try {
+            initCtx = new InitialContext();
+            javax.naming.Context envCtx = (javax.naming.Context) initCtx.lookup("java:comp/env");
+            String s = (String) envCtx.lookup("mongodb.host");
+        } catch (NamingException ex) {
+            Logger.getLogger(VisServerAppResources.class.getName()).log(Level.SEVERE, null, ex);
+        }        
 
         VisMsApiService msApiService = new VisMsApiService(appResources);
         List<VisCouplingGraphEdge> processPapersList = null;

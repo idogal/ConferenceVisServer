@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idog.vis.academicvisapi.VisServerAppResources;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
 import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
+import com.idog.vis.academicvisapi.utility.VisPersistence;
 import java.io.IOException;
 import java.time.Year;
 import java.util.AbstractMap;
@@ -46,9 +47,11 @@ public class VisMsApiService implements MsApiService {
     private final String EXPECTED_CN_VALUE = "chase";
 
     private final VisServerAppResources appResources;
+    private final VisPersistence pService;
 
     public VisMsApiService(VisServerAppResources appResources) {
         this.appResources = appResources;
+        this.pService = appResources.getVisPersistenceService();
     }
 
     @Override
@@ -133,23 +136,6 @@ public class VisMsApiService implements MsApiService {
         return allPapers;
     }
 
-    private List<AcademicApiPaper> getPapersFromApiByExtendedProps(String year, int count) throws IOException {
-        LOGGER.debug("Trying to get papers by the Extended properties.");
-        String entityString = queryTheAcademicApi("icse", year, count);
-        ObjectMapper mapper = this.appResources.getMapper();
-        AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
-        LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
-        List<AcademicApiPaper> papers = readValue.entities;
-        Stream<AcademicApiPaper> filteredPapers = 
-                papers.stream()
-                        .filter((AcademicApiPaper paper) -> paper.getExtendedProperties() != null)
-                        .filter((AcademicApiPaper paper) -> paper.getExtendedProperties().getBv().toUpperCase().contains(EXPECTED_BV_VALUE));
-        
-        papers = filteredPapers.collect(Collectors.toList());
-        LOGGER.debug("{} papers were found with '{}' value in the BV field", papers.size(), EXPECTED_BV_VALUE);
-        return papers;
-    }
-
     private List<AcademicApiPaper> getPapersFromApi(String year, int count) throws IOException, WebApplicationException {
         LOGGER.info("Getting papers for year {}", year);
         List<AcademicApiPaper> papers = new ArrayList<>();
@@ -161,17 +147,20 @@ public class VisMsApiService implements MsApiService {
 
     private List<AcademicApiPaper> getPapersOfChaseConference(int count, String year, boolean noCache) throws IOException {
         LOGGER.info("Trying getting papers ids list...");
+        
         ApiResourceRequest request = new ApiResourceRequest(year, count);
         List<AcademicApiPaper> papers;
         ApiResourceResponse cachedResponse = null;
-        if (!noCache) {
-            cachedResponse = this.appResources.getChasePaperFromCache(request);
-            papers = (cachedResponse == null) ? null : cachedResponse.getPapers();
-            if (papers != null && !papers.isEmpty()) {
-                LOGGER.info("Got ids for {} cached papers.", papers.size());
-                return papers;
-            }
-        }
+//        if (!noCache) {
+//            this.appResources.
+//            cachedResponse = this.appResources.getChasePaperFromCache(request);
+//            papers = (cachedResponse == null) ? null : cachedResponse.getPapers();
+//            if (papers != null && !papers.isEmpty()) {
+//                LOGGER.info("Got ids for {} cached papers.", papers.size());
+//                return papers;
+//            }
+//        }
+        
         papers = new ArrayList<>();
         LOGGER.debug("No cache. Getting items...");
         if (!year.isEmpty()) {
@@ -219,8 +208,9 @@ public class VisMsApiService implements MsApiService {
                 executor.shutdownNow();
             }
         }
+        
         cachedResponse = new ApiResourceResponse(papers);
-        this.appResources.addChasePapersToCache(request, cachedResponse);
+        //this.appResources.addChasePapersToCache(request, cachedResponse);
         LOGGER.info("Got ids for {} new papers.", papers.size());
         return papers;
     }
@@ -240,13 +230,13 @@ public class VisMsApiService implements MsApiService {
         AcademicApiResponse readValue; 
         
         // Try to get from cache
-        if (!noCache) {
-            readValue = this.appResources.getPaperByIdFromCache(id);
-            if (readValue != null) {
-                LOGGER.info("Got data for id {} from cache", id);
-                return readValue.entities;
-            }
-        }        
+//        if (!noCache) {
+//            readValue = this.appResources.getPaperByIdFromCache(id);
+//            if (readValue != null) {
+//                LOGGER.info("Got data for id {} from cache", id);
+//                return readValue.entities;
+//            }
+//        }        
         
         // Send a query to the API if there is no cache
         String expr = "Id=" + id;
@@ -254,10 +244,14 @@ public class VisMsApiService implements MsApiService {
         List<AbstractMap.SimpleEntry<String, Object>> params = new ArrayList<>();
         params.add(new AbstractMap.SimpleEntry<>("expr", expr));
         params.add(new AbstractMap.SimpleEntry<>("attributes", attributes));
-        String entityString = queryTheAcademicApi(params);
+        String entityJson = pService.getMsApiResponse(id);
+        if (entityJson.isEmpty()) {
+            entityJson = queryTheAcademicApi(params);
+            pService.storeMsApiResponse(id, entityJson);
+        }         
         ObjectMapper mapper = this.appResources.getMapper();
-        readValue = mapper.readValue(entityString, AcademicApiResponse.class);        
-        this.appResources.addPaperByIdToCache(id, readValue);
+        readValue = mapper.readValue(entityJson, AcademicApiResponse.class);        
+//        this.appResources.addPaperByIdToCache(id, readValue);
         
         LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
         if (readValue.entities.isEmpty()) {
@@ -270,13 +264,42 @@ public class VisMsApiService implements MsApiService {
 
     private List<AcademicApiPaper> getPapersFromApiByConferenceName(String year, int count) throws IOException {
         LOGGER.debug("Trying to get papers by the C.CN property.");
-        String entityString = queryTheAcademicApi(EXPECTED_CN_VALUE, year, count);
+        
+        String entityString = pService.getMsApiResponse(EXPECTED_CN_VALUE, year, count);
+        if (entityString.isEmpty()) {
+            entityString = queryTheAcademicApi(EXPECTED_CN_VALUE, year, count);
+            pService.storeMsApiResponse(EXPECTED_CN_VALUE, year, count, entityString);
+        }        
+        
         ObjectMapper mapper = appResources.getMapper();
         AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
         LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
         LOGGER.debug("{} papers were found with '{}' value in the C.CN field", readValue.entities.size(), EXPECTED_CN_VALUE);
         return readValue.entities;
     }
+    
+    private List<AcademicApiPaper> getPapersFromApiByExtendedProps(String year, int count) throws IOException {
+        LOGGER.debug("Trying to get papers by the Extended properties.");
+        
+        String entityString = pService.getMsApiResponse("icse", year, count);
+        if (entityString.isEmpty()) {
+            entityString = queryTheAcademicApi("icse", year, count);
+            pService.storeMsApiResponse("icse", year, count, entityString);
+        }            
+        
+        ObjectMapper mapper = this.appResources.getMapper();
+        AcademicApiResponse readValue = mapper.readValue(entityString, AcademicApiResponse.class);
+        LOGGER.debug("Response was serialised into an AcademicApiResponse successfully");
+        List<AcademicApiPaper> papers = readValue.entities;
+        Stream<AcademicApiPaper> filteredPapers = 
+                papers.stream()
+                        .filter((AcademicApiPaper paper) -> paper.getExtendedProperties() != null)
+                        .filter((AcademicApiPaper paper) -> paper.getExtendedProperties().getBv().toUpperCase().contains(EXPECTED_BV_VALUE));
+        
+        papers = filteredPapers.collect(Collectors.toList());
+        LOGGER.debug("{} papers were found with '{}' value in the BV field", papers.size(), EXPECTED_BV_VALUE);
+        return papers;
+    }    
 
     private String queryTheAcademicApi(List<AbstractMap.SimpleEntry<String, Object>> params) throws WebApplicationException {
         return queryTheAcademicApi(MS_COGNITIVE_API_TARGET, ACEDEMIC_API_EVALUATE_PATH, params);

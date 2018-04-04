@@ -5,14 +5,14 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperAuthor;
+import com.idog.vis.academicvisapi.resources.model.VisPaper;
+import com.idog.vis.academicvisapi.resources.model.VisPaperAuthor;
 import com.idog.vis.academicvisapi.beans.AcademicApiAuthor;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphNode;
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperReference;
-import com.idog.vis.academicvisapi.resources.vismodel.VisSimpleCoupling;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphEdge;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphNode;
+import com.idog.vis.academicvisapi.resources.model.VisPaperReference;
+import com.idog.vis.academicvisapi.resources.model.VisSimpleCoupling;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

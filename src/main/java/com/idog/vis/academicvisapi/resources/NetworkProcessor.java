@@ -5,10 +5,10 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperAuthor;
+import com.idog.vis.academicvisapi.resources.model.VisPaperAuthor;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphNode;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphEdge;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
