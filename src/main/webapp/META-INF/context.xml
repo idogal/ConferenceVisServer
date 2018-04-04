@@ -6,9 +6,19 @@
     <Parameter name="mongodb.port" value="27017"/>
     -->
     
-    <Environment name="mongodb.host" value="localhost"
+    <Environment name="mongodb.host" value="cluster0-ot7ig.mongodb.net"
                  type="java.lang.String" override="false"/>
-    <Environment name="mongodb.port" value="27017"
+    <Environment name="mongodb.port" value="0"
                  type="java.lang.Integer" override="false"/>
+    <Environment name="mongodb.user" value="admin"
+                 type="java.lang.String" override="false"/>
+    <Environment name="mongodb.password" value="picard889!"
+                 type="java.lang.String" override="false"/>    
+    <Environment name="mongodb.db" value="msapi"
+                 type="java.lang.String" override="false"/>      
+    <Environment name="mongodb.ssl" value="false"
+                 type="java.lang.Boolean" override="false"/>       
+    <Environment name="mongodb.connectionstring" value="mongodb+srv://admin:picard889!@cluster0-ot7ig.mongodb.net/test"
+                 type="java.lang.String" override="false"/>
     
 </Context>

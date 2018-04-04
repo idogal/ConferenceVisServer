@@ -16,7 +16,13 @@ import com.idog.vis.academicvisapi.utility.ApiCache;
 import com.idog.vis.academicvisapi.utility.VisPersistence;
 import com.idog.vis.academicvisapi.utility.VisPersistenceService;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Singleton;
@@ -71,7 +77,6 @@ public class VisServerAppResources {
 //    public void addPaperByIdToCache(String key, AcademicApiResponse value) {
 //        cache.putByIdResponse(key, value);
 //    }
-    
     public VisServerAppResources() {
 
         LOGGER.info("Initialising the VisServerAppResources object");
@@ -84,27 +89,80 @@ public class VisServerAppResources {
         LOGGER.trace("Configured the ObjectMapper for: FAIL_ON_UNKNOWN_PROPERTIES");
         LOGGER.trace("Registered a Deserializer: AcademicApiResponseDeserializer");
 
+        MongoClient mongoClient = getMongoClient();
+        visPersistenceService
+                = new VisPersistenceService(new ApiCache(), mongoClient);
+
+        LOGGER.info("Finished initialising the VisServerAppResources object");
+    }
+
+    private MongoClient getMongoClient() {
         String mongoHost = "";
         int mongoPort;
+        String mongoUser = "";
+        String mongoPw = "";
+        String mongoDb = "";
+        Boolean mongoSSL = false;
+        String mongoConnectionString = "";
+        
         Context initCtx;
         try {
             initCtx = new InitialContext();
             Context envCtx = (Context) initCtx.lookup("java:comp/env");
             mongoHost = (String) envCtx.lookup("mongodb.host");
             mongoPort = (Integer) envCtx.lookup("mongodb.port");
+            mongoUser = (String) envCtx.lookup("mongodb.user");
+            mongoPw = (String) envCtx.lookup("mongodb.password");
+            mongoDb = (String) envCtx.lookup("mongodb.db");
+            mongoSSL = (Boolean) envCtx.lookup("mongodb.ssl");
+            mongoConnectionString = (String) envCtx.lookup("mongodb.connectionstring");
         } catch (NamingException ex) {
             LOGGER.error(ex);
             mongoHost = "localhost";
             mongoPort = 27017;
         }
 
-        LOGGER.trace("MongoDB: Host={}, Port={}", mongoHost, mongoPort);
-
-        MongoClient mongoClient = new MongoClient(mongoHost, mongoPort);
-
-        visPersistenceService
-                = new VisPersistenceService(new ApiCache(), mongoClient);
+        LOGGER.debug("MongoDB: Host={}, Port={}, User={}, Pw=, Db={}, SSL={}, ConnectionString={}", mongoHost, mongoPort, mongoUser, mongoDb, mongoSSL, mongoConnectionString);
         
-        LOGGER.info("Finished initialising the VisServerAppResources object");
+        if (!mongoConnectionString.isEmpty()) {
+            MongoClient mongoClient = new MongoClient(new MongoClientURI(mongoConnectionString));
+            LOGGER.debug("MongoDB: Connected using the connection string.");
+            return mongoClient;
+        }
+        
+        ServerAddress mongoAddress = new ServerAddress(mongoHost);
+        if (mongoPort != 0) {
+            mongoAddress = new ServerAddress(mongoHost, mongoPort);
+        }
+
+        MongoCredential credential = null;
+        
+        if (!mongoUser.isEmpty()) {
+            credential = MongoCredential.createCredential(mongoUser, mongoDb, mongoPw.toCharArray());                        
+
+            List<MongoCredential> creds = new ArrayList<>();
+            creds.add(credential);
+        }
+        
+        MongoClientOptions options = null;
+        if (mongoSSL) {
+            MongoClientOptions.builder().sslEnabled(true).build();
+        } else {
+            MongoClientOptions.builder().sslEnabled(false).build();
+        }
+        
+        MongoClient mongoClient = null;
+        
+        try {
+            if (credential == null) {
+                mongoClient = new MongoClient(mongoAddress);
+            } else {
+                mongoClient = new MongoClient(mongoAddress, credential, options);
+            }            
+        } catch (RuntimeException e) {
+            LOGGER.error(e);
+        }
+        
+        return mongoClient;
     }
 }
