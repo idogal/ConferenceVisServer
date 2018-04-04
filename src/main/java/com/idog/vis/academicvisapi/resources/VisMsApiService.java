@@ -84,7 +84,8 @@ public class VisMsApiService implements MsApiService {
                 currentFinishPosition = chasePapersIds.size() - 1;
             }
             // Process current batch
-            ExecutorService executor = Executors.newFixedThreadPool(currentFinishPosition - startFrom);
+            int poolSize = currentFinishPosition - startFrom + 1;
+            ExecutorService executor = Executors.newFixedThreadPool(poolSize);
             List<Future<List<AcademicApiPaper>>> tasks = new ArrayList<>();
             for (int i = startFrom; i <= currentFinishPosition; i++) {
                 AcademicApiPaper chasePaper = chasePapersIds.get(i);
