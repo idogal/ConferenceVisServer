@@ -5,12 +5,12 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperReference;
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperAuthor;
+import com.idog.vis.academicvisapi.resources.model.VisPaperReference;
+import com.idog.vis.academicvisapi.resources.model.VisPaper;
+import com.idog.vis.academicvisapi.resources.model.VisPaperAuthor;
 import com.idog.vis.academicvisapi.MockService;
 import com.idog.vis.academicvisapi.beans.AcademicApiPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisCouplingGraphEdge;
+import com.idog.vis.academicvisapi.resources.model.VisCouplingGraphEdge;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class VisNetworkProcessorTest {
     @Test
     public void deriveAuthorsListFromPapersListTest() {
         List<AcademicApiPaper> mockPapers = mocker.mockPapersRandom();
-        Map<VisPaperAuthor, VisPaperAuthor> visAuthors = visProc.deriveAuthorsListFromPapersList(mockPapers);
+        Map<VisPaperAuthor, VisPaperAuthor> visAuthors = visProc.deriveAuthorsToAuthorsMap(mockPapers);
 
         org.junit.Assert.assertTrue(visAuthors.size() < 12); // Max length of the author names list
 

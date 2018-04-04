@@ -5,8 +5,8 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaper;
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperReference;
+import com.idog.vis.academicvisapi.resources.model.VisPaper;
+import com.idog.vis.academicvisapi.resources.model.VisPaperReference;
 import org.junit.Assert;
 import org.junit.Test;
 

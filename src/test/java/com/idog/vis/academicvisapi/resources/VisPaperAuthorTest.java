@@ -5,7 +5,7 @@
  */
 package com.idog.vis.academicvisapi.resources;
 
-import com.idog.vis.academicvisapi.resources.vismodel.VisPaperAuthor;
+import com.idog.vis.academicvisapi.resources.model.VisPaperAuthor;
 import org.junit.Test;
 import org.junit.Assert;
 import static org.mockito.Mockito.mock;
