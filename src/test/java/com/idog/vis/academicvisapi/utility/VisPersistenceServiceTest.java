@@ -17,25 +17,25 @@ public class VisPersistenceServiceTest {
 
     private static VisPersistenceService service;
 
-    @BeforeClass
-    public static void init() {
-        ApiCache cache = new ApiCache();
-        MongoClient mongoClient = new MongoClient();
-        service = new VisPersistenceService(cache, mongoClient);
-
-    }
-
-    @Test
-    public void getMsApiResponseTest() {
-        String msApiResponse = service.getMsApiResponse("CHASE", "", 3);
-    }
-
-    @Test
-    public void storeMsApiResponseTest() {
-        String r = getMsApiJsonResponse();
-        
-        service.storeMsApiResponse("CHASE", "", 3, r);
-    }
+//    @BeforeClass
+//    public static void init() {
+//        ApiCache cache = new ApiCache();
+//        MongoClient mongoClient = new MongoClient();
+//        service = new VisPersistenceService(cache, mongoClient);
+//
+//    }
+//
+//    @Test
+//    public void getMsApiResponseTest() {
+//        String msApiResponse = service.getMsApiResponse("CHASE", "", 3);
+//    }
+//
+//    @Test
+//    public void storeMsApiResponseTest() {
+//        String r = getMsApiJsonResponse();
+//        
+//        service.storeMsApiResponse("CHASE", "", 3, r);
+//    }
 
     private String getMsApiJsonResponse() {
         String r
