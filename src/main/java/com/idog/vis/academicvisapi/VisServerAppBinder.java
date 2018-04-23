@@ -17,7 +17,7 @@ public class VisServerAppBinder extends AbstractBinder {
     @Override
     protected void configure() {
         bind(new VisServerAppResources())
-                .to(VisServerAppResources.class);   
+                .to(VisServerAppResources.class);                  
     }
     
 }

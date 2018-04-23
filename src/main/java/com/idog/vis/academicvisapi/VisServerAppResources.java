@@ -10,8 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.idog.vis.academicvisapi.beans.AcademicApiResponse;
 import com.idog.vis.academicvisapi.beans.AcademicApiResponseDeserializer;
-import com.idog.vis.academicvisapi.resources.ApiResourceRequest;
-import com.idog.vis.academicvisapi.resources.ApiResourceResponse;
 import com.idog.vis.academicvisapi.utility.ApiCache;
 import com.idog.vis.academicvisapi.utility.VisPersistence;
 import com.idog.vis.academicvisapi.utility.VisPersistenceService;
@@ -20,11 +18,8 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.inject.Singleton;
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -77,8 +72,12 @@ public class VisServerAppResources {
 //    public void addPaperByIdToCache(String key, AcademicApiResponse value) {
 //        cache.putByIdResponse(key, value);
 //    }
+    
     public VisServerAppResources() {
-
+        this(null);
+    }
+    
+    public VisServerAppResources(InitialContext ctx) {
         LOGGER.info("Initialising the VisServerAppResources object");
 
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -89,14 +88,15 @@ public class VisServerAppResources {
         LOGGER.trace("Configured the ObjectMapper for: FAIL_ON_UNKNOWN_PROPERTIES");
         LOGGER.trace("Registered a Deserializer: AcademicApiResponseDeserializer");
 
-        MongoClient mongoClient = getMongoClient();
+        MongoClient mongoClient = getMongoClient(ctx);
+
         visPersistenceService
                 = new VisPersistenceService(new ApiCache(), mongoClient);
 
         LOGGER.info("Finished initialising the VisServerAppResources object");
     }
 
-    private MongoClient getMongoClient() {
+    private MongoClient getMongoClient(InitialContext initCtx) {
         String mongoHost = "";
         int mongoPort;
         String mongoUser = "";
@@ -104,10 +104,12 @@ public class VisServerAppResources {
         String mongoDb = "";
         Boolean mongoSSL = false;
         String mongoConnectionString = "";
-        
-        Context initCtx;
+
         try {
-            initCtx = new InitialContext();
+            if (initCtx == null) {
+                initCtx = new InitialContext();
+            }
+
             Context envCtx = (Context) initCtx.lookup("java:comp/env");
             mongoHost = (String) envCtx.lookup("mongodb.host");
             mongoPort = (Integer) envCtx.lookup("mongodb.port");
@@ -123,46 +125,50 @@ public class VisServerAppResources {
         }
 
         LOGGER.debug("MongoDB: Host={}, Port={}, User={}, Pw=, Db={}, SSL={}, ConnectionString={}", mongoHost, mongoPort, mongoUser, mongoDb, mongoSSL, mongoConnectionString);
-        
+
         if (!mongoConnectionString.isEmpty()) {
             MongoClient mongoClient = new MongoClient(new MongoClientURI(mongoConnectionString));
             LOGGER.debug("MongoDB: Connected using the connection string.");
             return mongoClient;
         }
-        
+
         ServerAddress mongoAddress = new ServerAddress(mongoHost);
         if (mongoPort != 0) {
             mongoAddress = new ServerAddress(mongoHost, mongoPort);
         }
 
         MongoCredential credential = null;
-        
+
         if (!mongoUser.isEmpty()) {
-            credential = MongoCredential.createCredential(mongoUser, mongoDb, mongoPw.toCharArray());                        
+            credential = MongoCredential.createCredential(mongoUser, mongoDb, mongoPw.toCharArray());
 
             List<MongoCredential> creds = new ArrayList<>();
             creds.add(credential);
         }
-        
+
         MongoClientOptions options = null;
         if (mongoSSL) {
-            MongoClientOptions.builder().sslEnabled(true).build();
+            options = MongoClientOptions.builder()
+                    .connectTimeout(60000)
+                    .sslEnabled(true).build();
         } else {
-            MongoClientOptions.builder().sslEnabled(false).build();
+            options = MongoClientOptions.builder()
+                    .connectTimeout(60000)
+                    .sslEnabled(false).build();
         }
-        
+
         MongoClient mongoClient = null;
-        
+
         try {
             if (credential == null) {
                 mongoClient = new MongoClient(mongoAddress);
             } else {
                 mongoClient = new MongoClient(mongoAddress, credential, options);
-            }            
+            }
         } catch (RuntimeException e) {
             LOGGER.error(e);
         }
-        
+
         return mongoClient;
     }
 }

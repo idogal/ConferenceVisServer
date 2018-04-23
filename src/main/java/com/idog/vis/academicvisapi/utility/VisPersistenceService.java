@@ -5,6 +5,8 @@
  */
 package com.idog.vis.academicvisapi.utility;
 
+import com.idog.vis.academicvisapi.resources.ApiResourceRequest;
+import com.idog.vis.academicvisapi.resources.ApiResourceResponse;
 import com.mongodb.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
@@ -35,6 +37,16 @@ public class VisPersistenceService implements VisPersistence {
 
     @Override
     public String getMsApiResponse(String conference, String year, int count) {
+
+        // First, try to get from the cache
+        ApiResourceRequest apiRequest = new ApiResourceRequest(year, count);
+        apiRequest.setConferenceName(conference);
+        String msApiResponseJson = apiCache.getChasePapersResponse(apiRequest);
+        if (msApiResponseJson != null) {
+            return msApiResponseJson;
+        }
+
+        // If there's not cache, try to get from the DB
         MongoDatabase database = mongoClient.getDatabase(DB_NAME);
         MongoCollection<Document> collection = database.getCollection(CONFPAPERS_COLLECTION_NAME);
         FindIterable<Document> documents = collection.find(
@@ -58,12 +70,19 @@ public class VisPersistenceService implements VisPersistence {
         if (jsons.size() != 1) {
             return "";
         } else {
-            return jsons.get(0);
+            String j = jsons.get(0);
+            
+            apiRequest.setConferenceName(conference);
+            apiCache.putChasePapersResponse(apiRequest, j);
+
+            return j;
         }
     }
 
     @Override
     public void storeMsApiResponse(String conference, String year, int count, String response) {
+
+        // Store in DB
         MongoDatabase database = mongoClient.getDatabase(DB_NAME);
         MongoCollection<Document> collection = database.getCollection(CONFPAPERS_COLLECTION_NAME);
 
