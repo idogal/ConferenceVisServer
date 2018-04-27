@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class ApiCache {
 
     private Cache<ApiResourceRequest, String> apiChasePapersResponses;
-    private Cache<String, AcademicApiResponse> apiByIdResponses;
+    private Cache<String, String> apiByIdResponses;
 
     public ApiCache() {
         apiChasePapersResponses
@@ -42,7 +42,7 @@ public class ApiCache {
         return apiChasePapersResponses;
     }
 
-    public Cache<String, AcademicApiResponse> getByIdResponses() {
+    public Cache<String, String> getByIdResponses() {
         return apiByIdResponses;
     }
 
@@ -50,7 +50,7 @@ public class ApiCache {
         return apiChasePapersResponses.getIfPresent(key);
     }
     
-    public AcademicApiResponse getByIdResponse(String id) {
+    public String getByIdResponse(String id) {
         return apiByIdResponses.getIfPresent(id);
     }    
 
@@ -58,7 +58,7 @@ public class ApiCache {
         apiChasePapersResponses.put(key, value);
     }
     
-    public void putByIdResponse(String id, AcademicApiResponse value) {
+    public void putByIdResponse(String id, String value) {
         apiByIdResponses.put(id, value);
     }    
 }
