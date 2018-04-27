@@ -9,6 +9,9 @@ import com.idog.vis.academicvisapi.resources.ApiResourceRequest;
 import com.idog.vis.academicvisapi.resources.ApiResourceResponse;
 import com.mongodb.Block;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
+import com.mongodb.MongoWriteConcernException;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -54,7 +57,7 @@ public class VisPersistenceService implements VisPersistence {
         }
 
         // If there's not cache, try to get from the DB    
-        LOGGER.debug("Recovered {} documents from the DB ({}, {}, {}).", year, conference, count);
+        LOGGER.debug("Recovering documents from the DB ({}, {}, {}).", year, conference, count);
         MongoDatabase database = mongoClient.getDatabase(DB_NAME);
         MongoCollection<Document> collection = database.getCollection(CONFPAPERS_COLLECTION_NAME);
         FindIterable<Document> documents = collection.find(
@@ -81,10 +84,6 @@ public class VisPersistenceService implements VisPersistence {
             return "";
         } else {
             String j = jsons.get(0);
-
-            apiRequest.setConferenceName(conference);
-            apiCache.putChasePapersResponse(apiRequest, j);
-
             return j;
         }
     }
@@ -92,6 +91,13 @@ public class VisPersistenceService implements VisPersistence {
     @Override
     public void storeMsApiResponse(String conference, String year, int count, String response) {
         LOGGER.info("Storing the reponse for: year = {}, conference = {}, count = {}", year, conference, count);
+        LOGGER.info("Response: {}", response);
+        
+        // Store in cache
+        ApiResourceRequest apiRequest = new ApiResourceRequest(year, count);
+        apiRequest.setConferenceName(conference);
+        apiCache.putChasePapersResponse(apiRequest, response);
+        
         // Store in DB
         MongoDatabase database = mongoClient.getDatabase(DB_NAME);
         MongoCollection<Document> collection = database.getCollection(CONFPAPERS_COLLECTION_NAME);
@@ -102,7 +108,15 @@ public class VisPersistenceService implements VisPersistence {
         document.append("count", count);
         document.append("response", response);
 
-        collection.insertOne(document);
+        try {
+            collection.insertOne(document);
+        } catch (MongoWriteException ex) {
+            LOGGER.error(ex.getError());
+        } catch (MongoWriteConcernException ex) {
+            LOGGER.error(ex.getWriteConcernError());
+        } catch (MongoException ex) {
+            LOGGER.error(ex.getCode());
+        }
     }
 
     @Override
@@ -117,7 +131,7 @@ public class VisPersistenceService implements VisPersistence {
         }
 
         // If there's not cache, try to get from the DB    
-        LOGGER.debug("Recovered {} documents from the DB ({}).", paperId);
+        LOGGER.debug("Recovering documents from the DB ({}).", paperId);
         MongoDatabase database = mongoClient.getDatabase(DB_NAME);
         MongoCollection<Document> collection = database.getCollection(PAPERS_COLLECTION_NAME);
         FindIterable<Document> documents = collection.find(
@@ -140,8 +154,7 @@ public class VisPersistenceService implements VisPersistence {
         if (jsons.size() != 1) {
             return "";
         } else {
-            String j = jsons.get(0);
-            apiCache.putByIdResponse(paperId, j);
+            String j = jsons.get(0);            
             return j;
         }
     }
@@ -149,7 +162,12 @@ public class VisPersistenceService implements VisPersistence {
     @Override
     public void storeMsApiResponse(String paperId, String response) {
         LOGGER.info("Storing the reponse for: id = {}", paperId);
+        LOGGER.info("Response: {}", response);
         
+        // Store in cache
+        apiCache.putByIdResponse(paperId, response);
+        
+        // Store in DB
         MongoDatabase database = mongoClient.getDatabase(DB_NAME);
         MongoCollection<Document> collection = database.getCollection(PAPERS_COLLECTION_NAME);
 
@@ -157,7 +175,15 @@ public class VisPersistenceService implements VisPersistence {
         document.append("paperId", paperId);
         document.append("response", response);
 
-        collection.insertOne(document);
+        try {
+            collection.insertOne(document);
+        } catch (MongoWriteException ex) {
+            LOGGER.error(ex.getError());
+        } catch (MongoWriteConcernException ex) {
+            LOGGER.error(ex.getWriteConcernError());
+        } catch (MongoException ex) {
+            LOGGER.error(ex.getCode());
+        }
     }
 
 }
