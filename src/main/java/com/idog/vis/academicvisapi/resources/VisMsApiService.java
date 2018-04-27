@@ -133,7 +133,7 @@ public class VisMsApiService implements MsApiService {
             }
             startFrom = startFrom + batchSize;
         }
-        LOGGER.info("Got {} papers", allPapers.size());
+        LOGGER.info("Got the details of {} papers", allPapers.size());
         return allPapers;
     }
 
@@ -142,16 +142,16 @@ public class VisMsApiService implements MsApiService {
         List<AcademicApiPaper> papers = new ArrayList<>();
         papers.addAll(getPapersFromApiByExtendedProps(year, count));
         papers.addAll(getPapersFromApiByConferenceName(year, count));
-        LOGGER.info("{} papers were retrieved in total.", papers.size());
+        LOGGER.info("{} papers were retrieved in total ({}).", papers.size(), year);
         return papers;
     }
 
     private List<AcademicApiPaper> getPapersOfChaseConference(int count, String year, boolean noCache) throws IOException {
         LOGGER.info("Trying getting papers ids list...");
         
-        ApiResourceRequest request = new ApiResourceRequest(year, count);
         List<AcademicApiPaper> papers;
-        ApiResourceResponse cachedResponse = null;
+        
+//        ApiResourceRequest request = new ApiResourceRequest(year, count);
 //        if (!noCache) {
 //            this.appResources.
 //            cachedResponse = this.appResources.getChasePaperFromCache(request);
@@ -161,9 +161,9 @@ public class VisMsApiService implements MsApiService {
 //                return papers;
 //            }
 //        }
-        
-        papers = new ArrayList<>();
-        LOGGER.debug("No cache. Getting items...");
+//        LOGGER.debug("No cache. Getting items...");
+
+        papers = new ArrayList<>();        
         if (!year.isEmpty()) {
             papers = getPapersFromApi(year, count);
         } else {
@@ -210,7 +210,7 @@ public class VisMsApiService implements MsApiService {
             }
         }
         
-        cachedResponse = new ApiResourceResponse(papers);
+        ApiResourceResponse apiResponse = new ApiResourceResponse(papers);
         //this.appResources.addChasePapersToCache(request, cachedResponse);
         LOGGER.info("Got ids for {} new papers.", papers.size());
         return papers;
@@ -258,7 +258,7 @@ public class VisMsApiService implements MsApiService {
         if (readValue.entities.isEmpty()) {
             LOGGER.warn("{} papers were found with '{}' id", readValue.entities.size(), id);
         } else {
-            LOGGER.info("{} papers were found with '{}' id", readValue.entities.size(), id);
+            LOGGER.debug("{} papers were found with '{}' id", readValue.entities.size(), id);
         }
         return readValue.entities;
     }

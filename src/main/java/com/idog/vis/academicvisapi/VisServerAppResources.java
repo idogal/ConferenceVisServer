@@ -169,6 +169,7 @@ public class VisServerAppResources {
             LOGGER.error(e);
         }
 
+        LOGGER.info("Created a MongoClient");
         return mongoClient;
     }
 }

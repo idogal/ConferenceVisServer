@@ -36,8 +36,7 @@ import org.apache.logging.log4j.Logger;
 @Path("/msapi")
 public class ApiResource {
 
-    @Inject
-    private VisServerRequestResources requestResources;
+    //@Inject private VisServerRequestResources requestResources;
     @Inject
     private VisServerAppResources appResources;
     @Context
@@ -78,7 +77,7 @@ public class ApiResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
         }
 
-        LOGGER.info("Responding...");
+        LOGGER.info("Responding with the papers...");
         return Response.ok().entity(chasePapers).build();
     }
 
@@ -112,7 +111,7 @@ public class ApiResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
         }
 
-        LOGGER.info("Responding...");
+        LOGGER.info("Responding with the papers...");
         return Response.ok().entity(allPapers).build();
     }
 }
